@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://infiniconvert.loophora.com/sitemap.xml

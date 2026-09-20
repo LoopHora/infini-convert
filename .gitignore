@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production Build
+dist/
+dist-ssr/
+*.local
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Test & Automation Artifacts
+actual_downloads/
+temp_ab_downloads/
+temp_ab_profile/
+playwright-artifacts/
+playwright-report/
+test-results/
+coverage/
+*.png.download
+*.log
+dist_audit_report.json
+ab_test_*.png
+scripts/crop_and_resize_proof.png
+
+# Editor & OS Metadata
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
