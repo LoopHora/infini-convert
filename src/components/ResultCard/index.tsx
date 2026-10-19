@@ -139,7 +139,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           style={{ textDecoration: 'none' }}
         >
           <Download style={{ width: 16, height: 16 }} />
-          Download File
+          <span>Download File ({formatFileSize(effectiveSize)})</span>
         </a>
 
         {onAdjust && (

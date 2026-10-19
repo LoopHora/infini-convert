@@ -162,7 +162,14 @@ const FileListItem: React.FC<FileListItemProps> = ({
           {item.name}
         </p>
         <p style={{ fontSize: '0.75rem', color: 'var(--text-sub)' }}>
-          {formatFileSize(item.size)}
+          {item.result ? (
+            <span>
+              <strong style={{ color: 'var(--badge-green-text)', fontWeight: 700 }}>{formatFileSize(item.result.size)}</strong>
+              <span style={{ color: 'var(--text-dim)', marginLeft: '6px' }}>(original: {formatFileSize(item.size)})</span>
+            </span>
+          ) : (
+            formatFileSize(item.size)
+          )}
           {showDimensions && item.width && item.height && (
             <> · {item.width} × {item.height}</>
           )}

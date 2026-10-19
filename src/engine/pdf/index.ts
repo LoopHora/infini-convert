@@ -293,8 +293,8 @@ export async function compressPdf(
       throw new Error('PDF document contains no pages');
     }
 
-    const isVeryLarge = file.size > 150 * 1024 * 1024; // > 150MB (e.g. 500MB)
-    const isLarge = file.size > 50 * 1024 * 1024;      // > 50MB
+    const isVeryLarge = file.size > 250 * 1024 * 1024; // > 250MB (e.g. 500MB)
+    const isLarge = file.size > 100 * 1024 * 1024;      // > 100MB
 
     // Calculate resolution scale and JPEG compression quality based on mode
     let scale = 1.8;
@@ -303,16 +303,16 @@ export async function compressPdf(
     if (settings.mode === 'preset') {
       switch (settings.preset) {
         case '4k':
-          scale = isVeryLarge ? 2.5 : 3.5; // ~250-300 DPI for standard page sizes: 4K UHD crispness
-          quality = isVeryLarge ? 0.88 : 0.92;
+          scale = isVeryLarge ? 2.8 : 3.5; // ~250-300 DPI for standard page sizes: 4K UHD crispness
+          quality = isVeryLarge ? 0.90 : 0.94;
           break;
         case 'best':
-          scale = isVeryLarge ? 2.0 : 2.4; // High fidelity
-          quality = 0.85;
+          scale = isVeryLarge ? 2.2 : 2.5; // High fidelity
+          quality = 0.88;
           break;
         case 'balanced':
-          scale = isVeryLarge ? 1.5 : 1.8; // Daily reading & web
-          quality = 0.75;
+          scale = isVeryLarge ? 1.6 : 1.8; // Daily reading & web
+          quality = 0.78;
           break;
         case 'smallest':
           scale = 1.2; // Maximum shrinkage
@@ -325,20 +325,23 @@ export async function compressPdf(
     } else if (settings.mode === 'custom') {
       quality = Math.max(0.05, Math.min(1.0, (settings.quality || 75) / 100));
       if (settings.resolution === '4k') {
-        scale = isVeryLarge ? 2.5 : 3.5;
+        scale = isVeryLarge ? 2.8 : 3.5;
       } else if (settings.resolution === 'high') {
-        scale = isVeryLarge ? 1.8 : 2.4;
+        scale = isVeryLarge ? 2.0 : 2.4;
       } else if (settings.resolution === 'standard') {
         scale = 1.5;
       } else {
-        scale = quality >= 0.9 ? (isVeryLarge ? 2.5 : 3.5) : quality >= 0.7 ? 2.0 : 1.4;
+        scale = quality >= 0.9 ? (isVeryLarge ? 2.8 : 3.5) : quality >= 0.7 ? 2.2 : 1.5;
       }
     } else if (settings.mode === 'target') {
       const target = settings.targetSize || 500 * 1024;
       const bytesPerPage = target / totalPages;
-      if (bytesPerPage >= 1024 * 1024) {
-        scale = isVeryLarge ? 2.2 : 3.0;
-        quality = isVeryLarge ? 0.82 : 0.88;
+      if (bytesPerPage >= 2 * 1024 * 1024) {
+        scale = isVeryLarge ? 2.8 : 3.5;
+        quality = isVeryLarge ? 0.90 : 0.94;
+      } else if (bytesPerPage >= 1024 * 1024) {
+        scale = isVeryLarge ? 2.4 : 3.0;
+        quality = isVeryLarge ? 0.85 : 0.90;
       } else if (bytesPerPage >= 500 * 1024) {
         scale = isVeryLarge ? 1.8 : 2.4;
         quality = 0.80;
@@ -355,7 +358,7 @@ export async function compressPdf(
     }
 
     // Safe dimension cap based on file size to prevent canvas/GPU allocation failure
-    const maxAllowedDim = isVeryLarge ? 2160 : isLarge ? 2880 : 4096;
+    const maxAllowedDim = isVeryLarge ? 2560 : isLarge ? 3200 : 4096;
 
     const newPdf = await PDFDocument.create();
 

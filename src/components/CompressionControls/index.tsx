@@ -160,7 +160,7 @@ export const CompressionControls: React.FC<CompressionControlsProps> = ({
           </div>
           {settings.targetSize && (
             <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '8px' }}>
-              Algorithm will iteratively optimize quality to stay under ~{formatFileSize(settings.targetSize)}.
+              Target size ceiling: ~{formatFileSize(settings.targetSize)}. Quality will be maximized while ensuring output stays within this limit (actual output may be smaller if optimal fidelity is achieved).
             </p>
           )}
         </div>
