@@ -28,16 +28,17 @@ const categories = [
     basePath: '/convert',
   },
   {
-    title: 'Image Compression',
-    description: 'Reduce image file size with adjustable compression controls',
+    title: 'File & Image Compression',
+    description: 'Reduce PDF and image file size with 4K UHD or custom compression',
     icon: Minimize2,
     color: '#10b981',
     tools: [
+      { id: 'compress-pdf', label: 'Compress PDF (4K & Custom)', path: '/compress/pdf' },
       { id: 'compress-jpg', label: 'Compress JPG' },
       { id: 'compress-png', label: 'Compress PNG' },
       { id: 'compress-webp', label: 'Compress WebP' },
       { id: 'compress-heic', label: 'Compress HEIC' },
-      { id: 'compress-image', label: 'Compress Any Image' },
+      { id: 'compress-image', label: 'Compress Any File' },
     ],
     basePath: '/compress',
   },
@@ -54,10 +55,11 @@ const categories = [
   },
   {
     title: 'PDF Utilities',
-    description: 'Convert between multi-page documents and image formats',
+    description: 'Compress, convert, and extract multi-page PDF documents',
     icon: FileText,
     color: '#f59e0b',
     tools: [
+      { id: 'compress-pdf', label: 'Compress PDF (4K & Custom)', path: '/compress/pdf' },
       { id: 'image-to-pdf', label: 'Images to PDF Document' },
       { id: 'pdf-to-jpg', label: 'Extract PDF to JPG' },
       { id: 'pdf-to-png', label: 'Extract PDF to PNG' },

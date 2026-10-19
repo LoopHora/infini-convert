@@ -28,7 +28,7 @@ import { ResizeControls } from '@/components/ResizeControls';
 import { ResultCard } from '@/components/ResultCard';
 import { BatchResult } from '@/components/BatchResult';
 import { convertImage, convertHeic, compressImage, resizeImage } from '@/engine/codecs';
-import { imagesToPdf, pdfToImages } from '@/engine/pdf';
+import { imagesToPdf, pdfToImages, compressPdf } from '@/engine/pdf';
 import {
   formatFileSize,
   createObjectUrl,
@@ -325,7 +325,13 @@ export const AutoDetectWorkspace: React.FC<AutoDetectWorkspaceProps> = ({
           let outputName = detected.name;
 
           if (selectedAction.category === 'compress') {
-            outputBlob = await compressImage(detected.file, compressionSettings);
+            if (detected.isPdf || detected.detectedFormat === 'pdf') {
+              outputBlob = await compressPdf(detected.file, compressionSettings, (curr, total) => {
+                setProgressStatus({ current: curr, total });
+              });
+            } else {
+              outputBlob = await compressImage(detected.file, compressionSettings);
+            }
             outputName = generateOutputFilename(detected.name, 'compressed', { mimeType: outputBlob.type });
           } else if (selectedAction.category === 'resize') {
             const ext = getFileExtension(detected.name);

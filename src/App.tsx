@@ -37,8 +37,10 @@ export const App: React.FC = () => {
             <Route path="/convert/image-to-pdf" element={<ImageToPdfPage />} />
             <Route path="/convert/pdf-to-jpg" element={<PdfToImagePage initialFormat="jpg" />} />
             <Route path="/convert/pdf-to-png" element={<PdfToImagePage initialFormat="png" />} />
+            <Route path="/convert/compress-pdf" element={<Navigate to="/compress/pdf" replace />} />
 
             {/* Dedicated redirects for tool alias routes */}
+            <Route path="/compress-pdf" element={<Navigate to="/compress/pdf" replace />} />
             <Route path="/convert/resize-image" element={<Navigate to="/resize/image" replace />} />
             <Route path="/convert/resize" element={<Navigate to="/resize/image" replace />} />
             <Route path="/convert/crop-image" element={<Navigate to="/resize/image?mode=crop" replace />} />
@@ -50,7 +52,8 @@ export const App: React.FC = () => {
             <Route path="/convert/:toolId" element={<ConvertPage />} />
             <Route path="/convert" element={<Navigate to="/convert/jpg-to-png" replace />} />
 
-            {/* Image compression */}
+            {/* File & Document compression */}
+            <Route path="/compress/pdf" element={<CompressPage initialFormat="pdf" />} />
             <Route path="/compress/:format" element={<CompressPage />} />
             <Route path="/compress" element={<Navigate to="/compress/image" replace />} />
 

@@ -2,7 +2,7 @@
 // Image → PDF (using pdf-lib) and PDF → Image (using pdfjs-dist)
 
 import { PDFDocument, PageSizes } from 'pdf-lib';
-import type { PdfSettings, PdfToImageSettings } from '@/types';
+import type { PdfSettings, PdfToImageSettings, CompressionSettings } from '@/types';
 import { canvasToBlob, getMimeType } from '@/utils';
 import { decodeHeic } from '@/engine/codecs';
 
@@ -221,3 +221,124 @@ export async function getPdfPageCount(file: File): Promise<number> {
   const pdf = await pdfjs.getDocument({ data: arrayBuffer, verbosity: 0 }).promise;
   return pdf.numPages;
 }
+
+// ===== PDF COMPRESSION ENGINE =====
+
+export async function compressPdf(
+  file: File,
+  settings: CompressionSettings,
+  onProgress?: (current: number, total: number) => void
+): Promise<Blob> {
+  const pdfjs = await loadPdfJs();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer, verbosity: 0 }).promise;
+  const totalPages = pdf.numPages;
+
+  if (totalPages === 0) {
+    throw new Error('PDF document contains no pages');
+  }
+
+  // Calculate resolution scale and JPEG compression quality based on mode
+  let scale = 1.8;
+  let quality = 0.75;
+
+  if (settings.mode === 'preset') {
+    switch (settings.preset) {
+      case '4k':
+        scale = 3.5; // ~250-300 DPI for standard page sizes: 4K UHD crispness
+        quality = 0.92;
+        break;
+      case 'best':
+        scale = 2.4; // High fidelity
+        quality = 0.85;
+        break;
+      case 'balanced':
+        scale = 1.8; // Daily reading & web
+        quality = 0.75;
+        break;
+      case 'smallest':
+        scale = 1.2; // Maximum shrinkage
+        quality = 0.55;
+        break;
+      default:
+        scale = 1.8;
+        quality = 0.75;
+    }
+  } else if (settings.mode === 'custom') {
+    quality = Math.max(0.05, Math.min(1.0, (settings.quality || 75) / 100));
+    if (settings.resolution === '4k') {
+      scale = 3.5;
+    } else if (settings.resolution === 'high') {
+      scale = 2.4;
+    } else if (settings.resolution === 'standard') {
+      scale = 1.5;
+    } else {
+      scale = quality >= 0.9 ? 3.5 : quality >= 0.7 ? 2.2 : 1.5;
+    }
+  } else if (settings.mode === 'target') {
+    const target = settings.targetSize || 500 * 1024;
+    const bytesPerPage = target / totalPages;
+    if (bytesPerPage >= 1024 * 1024) {
+      scale = 3.5;
+      quality = 0.90;
+    } else if (bytesPerPage >= 500 * 1024) {
+      scale = 2.5;
+      quality = 0.82;
+    } else if (bytesPerPage >= 250 * 1024) {
+      scale = 1.8;
+      quality = 0.72;
+    } else if (bytesPerPage >= 100 * 1024) {
+      scale = 1.4;
+      quality = 0.60;
+    } else {
+      scale = 1.1;
+      quality = 0.45;
+    }
+  }
+
+  const newPdf = await PDFDocument.create();
+
+  for (let i = 1; i <= totalPages; i++) {
+    const page = await pdf.getPage(i);
+    const originalViewport = page.getViewport({ scale: 1.0 });
+    const pageWidthPt = originalViewport.width;
+    const pageHeightPt = originalViewport.height;
+
+    // Constrain scale to safe canvas limits (max 4096px dimension)
+    const maxDim = Math.max(pageWidthPt, pageHeightPt);
+    let pageScale = scale;
+    if (maxDim * pageScale > 4096) {
+      pageScale = 4096 / maxDim;
+    }
+
+    const renderViewport = page.getViewport({ scale: pageScale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(renderViewport.width);
+    canvas.height = Math.round(renderViewport.height);
+    const ctx = canvas.getContext('2d')!;
+
+    // Fill white background for pages with transparent layer
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvasContext: ctx, viewport: renderViewport, canvas } as any).promise;
+
+    const pageBlob = await canvasToBlob(canvas, 'image/jpeg', quality);
+    const pageBuffer = await pageBlob.arrayBuffer();
+    const embeddedImg = await newPdf.embedJpg(pageBuffer);
+
+    const newPage = newPdf.addPage([pageWidthPt, pageHeightPt]);
+    newPage.drawImage(embeddedImg, {
+      x: 0,
+      y: 0,
+      width: pageWidthPt,
+      height: pageHeightPt,
+    });
+
+    onProgress?.(i, totalPages);
+  }
+
+  const compressedBytes = await newPdf.save({ useObjectStreams: true });
+  return new Blob([compressedBytes as unknown as BlobPart], { type: 'application/pdf' });
+}
+

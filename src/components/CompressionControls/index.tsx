@@ -2,7 +2,7 @@
 // Styled with Inficy Universal Product Design Standard
 
 import React from 'react';
-import { Sparkles, Scale, Box } from 'lucide-react';
+import { Sparkles, Scale, Box, Sliders } from 'lucide-react';
 import type { CompressionSettings } from '@/types';
 import { TARGET_SIZES } from '@/types';
 import { formatFileSize } from '@/utils';
@@ -43,17 +43,18 @@ export const CompressionControls: React.FC<CompressionControlsProps> = ({
           <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '8px' }}>
             Quality Preset
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
-              { id: 'best', label: 'Best Quality', icon: Sparkles },
+              { id: '4k', label: '4K Ultra-HD', icon: Sparkles },
+              { id: 'best', label: 'Best Quality', icon: Sliders },
               { id: 'balanced', label: 'Balanced', icon: Scale },
               { id: 'smallest', label: 'Smallest Size', icon: Box },
             ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 className={`btn btn-sm ${settings.preset === id ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => onChange({ ...settings, preset: id as 'best' | 'balanced' | 'smallest' })}
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                onClick={() => onChange({ ...settings, preset: id as '4k' | 'best' | 'balanced' | 'smallest' })}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minWidth: '100px' }}
               >
                 <Icon style={{ width: 14, height: 14 }} />
                 <span>{label}</span>
@@ -91,9 +92,32 @@ export const CompressionControls: React.FC<CompressionControlsProps> = ({
             onChange={(e) => onChange({ ...settings, quality: Number(e.target.value) })}
             aria-label="Image quality"
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', marginBottom: '14px' }}>
             <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>Maximum Compression</span>
             <span style={{ fontSize: '0.6875rem', color: 'var(--text-dim)' }}>Highest Quality</span>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '8px' }}>
+              Resolution & Sharpness Tier
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[
+                { id: '4k', label: '4K Ultra-HD (300 DPI)' },
+                { id: 'high', label: '2K High (200 DPI)' },
+                { id: 'standard', label: 'Standard (150 DPI)' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`btn btn-sm ${(settings.resolution || (settings.quality >= 90 ? '4k' : 'high')) === id ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => onChange({ ...settings, resolution: id as '4k' | 'high' | 'standard' })}
+                  style={{ flex: 1, fontSize: '0.75rem' }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

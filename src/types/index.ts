@@ -50,10 +50,13 @@ export interface ProcessingResult {
 
 export interface CompressionSettings {
   mode: 'preset' | 'custom' | 'target';
-  preset: 'best' | 'balanced' | 'smallest';
+  preset: '4k' | 'best' | 'balanced' | 'smallest';
   quality: number; // 0-100
   targetSize?: number; // bytes
+  resolution?: 'standard' | 'high' | '4k'; // scale factor / resolution tier
 }
+
+export type PdfCompressionSettings = CompressionSettings;
 
 export interface ResizeSettings {
   width: number;
@@ -84,7 +87,8 @@ export const PAGE_SIZES = {
 } as const;
 
 export const PRESET_QUALITIES: Record<CompressionSettings['preset'], number> = {
-  best: 92,
+  '4k': 95,
+  best: 90,
   balanced: 75,
   smallest: 45,
 };

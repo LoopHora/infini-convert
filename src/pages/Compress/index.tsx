@@ -2,7 +2,7 @@
 // Styled with Inficy Universal Product Design Standard
 
 import React, { useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { Minimize2, ShieldCheck, Clock } from 'lucide-react';
 import { PageWrapper } from '@/components/Layout';
 import { FileDropzone } from '@/components/FileDropzone';
@@ -11,6 +11,7 @@ import { CompressionControls } from '@/components/CompressionControls';
 import { ResultCard } from '@/components/ResultCard';
 import { BatchResult } from '@/components/BatchResult';
 import { compressImage } from '@/engine/codecs';
+import { compressPdf } from '@/engine/pdf';
 import {
   generateId,
   getFileExtension,
@@ -22,22 +23,25 @@ import {
 import type { FileItem, ProcessingResult, CompressionSettings } from '@/types';
 
 const formatTitles: Record<string, { title: string; desc: string; accept: string[] }> = {
+  pdf: { title: 'Compress PDF (4K & Custom Quality)', desc: 'Reduce PDF file size with 4K Ultra-HD quality presets, custom sliders, or target file size.', accept: ['pdf'] },
   jpg: { title: 'Compress JPG', desc: 'Reduce JPG file size with adjustable quality controls.', accept: ['jpg', 'jpeg'] },
   png: { title: 'Compress PNG', desc: 'Reduce PNG file size with adjustable quality controls.', accept: ['png'] },
   webp: { title: 'Compress WebP', desc: 'Reduce WebP file size with adjustable quality controls.', accept: ['webp'] },
   heic: { title: 'Compress HEIC (iPhone Photo)', desc: 'Compress Apple HEIC photos locally in your browser.', accept: ['heic', 'heif'] },
-  image: { title: 'Compress Any Image', desc: 'Compress image files locally with before/after size inspection.', accept: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'heic', 'heif'] },
+  image: { title: 'Compress Files & Documents', desc: 'Compress PDF, JPG, PNG, WebP, and HEIC files locally with before/after size inspection.', accept: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'heic', 'heif'] },
 };
 
-export const CompressPage: React.FC = () => {
-  const { format } = useParams<{ format: string }>();
-  const info = formatTitles[format || 'image'] || formatTitles.image;
+export const CompressPage: React.FC<{ initialFormat?: string }> = ({ initialFormat }) => {
+  const { format: paramFormat } = useParams<{ format: string }>();
+  const location = useLocation();
+  const format = initialFormat || paramFormat || (location.pathname.includes('/pdf') ? 'pdf' : 'image');
+  const info = formatTitles[format] || formatTitles.image;
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [settings, setSettings] = useState<CompressionSettings>({
     mode: 'preset',
-    preset: 'balanced',
-    quality: 75,
+    preset: '4k',
+    quality: 85,
     targetSize: 500 * 1024,
   });
   const [processing, setProcessing] = useState(false);
@@ -82,10 +86,23 @@ export const CompressPage: React.FC = () => {
     for (const item of files) {
       try {
         setFiles((prev) =>
-          prev.map((f) => f.id === item.id ? { ...f, status: 'processing' as const, progress: 50 } : f)
+          prev.map((f) => f.id === item.id ? { ...f, status: 'processing' as const, progress: 20 } : f)
         );
 
-        const blob = await compressImage(item.file, settings);
+        const isPdf = item.extension === 'pdf' || item.file.type === 'application/pdf';
+        let blob: Blob;
+
+        if (isPdf) {
+          blob = await compressPdf(item.file, settings, (current, total) => {
+            const pct = Math.round((current / total) * 100);
+            setFiles((prev) =>
+              prev.map((f) => f.id === item.id ? { ...f, progress: pct } : f)
+            );
+          });
+        } else {
+          blob = await compressImage(item.file, settings);
+        }
+
         const resultName = generateOutputFilename(item.name, 'compressed', { mimeType: blob.type });
         const url = createObjectUrl(blob);
 
@@ -105,7 +122,8 @@ export const CompressPage: React.FC = () => {
         setFiles((prev) =>
           prev.map((f) => f.id === item.id ? { ...f, status: 'complete' as const, progress: 100, result } : f)
         );
-      } catch {
+      } catch (err) {
+        console.error('Compression failed for', item.name, err);
         setFiles((prev) =>
           prev.map((f) => f.id === item.id ? { ...f, status: 'error' as const, error: 'Compression failed' } : f)
         );

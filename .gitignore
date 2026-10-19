@@ -25,6 +25,8 @@ coverage/
 *.png.download
 *.log
 dist_audit_report.json
+live_production_audit_report.json
+*.zip
 ab_test_*.png
 scripts/crop_and_resize_proof.png
 

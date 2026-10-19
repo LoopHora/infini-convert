@@ -84,7 +84,7 @@ describe('Action Resolver', () => {
     expect(first.targetFormat).toBe('webp');
   });
 
-  it('ranks PDF actions: Extract to JPG and PNG', () => {
+  it('ranks PDF actions: Compress PDF, Extract to JPG and PNG', () => {
     const file = createMockDetected('document.pdf', 'pdf', 1200000, false, true);
     const summary: BatchSummary = {
       totalFiles: 1,
@@ -96,9 +96,11 @@ describe('Action Resolver', () => {
     };
 
     const resolution = resolveActions([file], summary);
-    expect(resolution.primaryActions.length).toBe(2);
-    expect(resolution.primaryActions[0].id).toBe('pdf-to-jpg');
-    expect(resolution.primaryActions[1].id).toBe('pdf-to-png');
+    expect(resolution.primaryActions.length).toBe(3);
+    expect(resolution.primaryActions[0].id).toBe('compress-pdf');
+    expect(resolution.primaryActions[0].isRecommended).toBe(true);
+    expect(resolution.primaryActions[1].id).toBe('pdf-to-jpg');
+    expect(resolution.primaryActions[2].id).toBe('pdf-to-png');
   });
 
   it('ranks Multiple Images: recommends Combine All into One PDF', () => {
