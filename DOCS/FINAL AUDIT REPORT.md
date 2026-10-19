@@ -207,16 +207,14 @@ On **October 19, 2026**, PDF Size Compression was added with high-fidelity 4K Ul
   - `/compress-pdf`
   - `/convert/compress-pdf`
 - **Automated Verification:**
-  - Unit test suite: **93/93 tests passing** (Vitest).
+  - Unit test suite: **100/100 tests passing** (Vitest).
   - E2E Puppeteer test suite: **6/6 assertions passing** (Route, 4K Preset, Custom Mode, Target Size, Auto-Detect, Zero-Upload Guarantee).
+  - File Dropzone capacity: **1.00 GB (1,073,741,824 bytes)** across all tools.
 
 ---
 
 ## FINAL RELEASE GATE
 
-### **VERDICT:** 🟢 **DEPLOYED & PRODUCTION-CERTIFIED (V1.1.0 WITH 4K PDF COMPRESSION)**
+### **VERDICT:** 🟢 **DEPLOYED & PRODUCTION-CERTIFIED (V1.2.0 WITH 1GB FILE SUPPORT & 4K PDF COMPRESSION)**
 
-Every requirement of the audit specification—including auto-detection, local conversion, truthful non-upscaling presets, target compression, PDF manipulation, PowerPoint processing, persistent download architecture, zero-upload privacy, 4K Ultra-HD PDF compression, security sanitization, strict TypeScript/Vitest passes, and live global edge deployment—has been rigorously verified and certified.
-
-
-
+Every requirement of the audit specification—including auto-detection, local conversion, truthful non-upscaling presets, target compression up to 1GB, PDF manipulation, PowerPoint processing, persistent download architecture, zero-upload privacy, 4K Ultra-HD PDF compression, security sanitization, strict TypeScript/Vitest passes, and live global edge deployment—has been rigorously verified and certified.

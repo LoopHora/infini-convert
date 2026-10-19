@@ -57,6 +57,8 @@ describe('Utility & Security Functions', () => {
       expect(formatFileSize(500)).toBe('500 B');
       expect(formatFileSize(1024)).toBe('1.00 KB');
       expect(formatFileSize(1024 * 1024 * 2.5)).toBe('2.50 MB');
+      expect(formatFileSize(1024 * 1024 * 1024)).toBe('1.00 GB');
+      expect(formatFileSize(1024 * 1024 * 1024 * 1.5)).toBe('1.50 GB');
     });
   });
 

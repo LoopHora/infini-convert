@@ -3,8 +3,11 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { UploadCloud, AlertCircle } from 'lucide-react';
+import { formatFileSize } from '@/utils';
 
-interface FileDropzoneProps {
+export const DEFAULT_MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB (1,073,741,824 bytes)
+
+export interface FileDropzoneProps {
   onFiles: (files: File[]) => void;
   accept?: string[];
   multiple?: boolean;
@@ -14,11 +17,40 @@ interface FileDropzoneProps {
   allowAllTypes?: boolean;
 }
 
+export function validateDroppedFile(
+  file: { name: string; size: number },
+  options: {
+    accept?: string[];
+    maxSize?: number;
+    allowAllTypes?: boolean;
+  } = {}
+): { valid: boolean; error?: string } {
+  const {
+    accept = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'heif', 'bmp', 'tiff', 'tif', 'gif', 'pdf'],
+    maxSize = DEFAULT_MAX_FILE_SIZE,
+    allowAllTypes = false,
+  } = options;
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const hasExt = file.name.includes('.');
+
+  if (!allowAllTypes && hasExt && !accept.includes(ext)) {
+    return { valid: false, error: `Unsupported format: .${ext}` };
+  }
+  if (file.size > maxSize) {
+    return { valid: false, error: `File exceeds limit: ${file.name} (max ${formatFileSize(maxSize)})` };
+  }
+  if (!allowAllTypes && file.size === 0) {
+    return { valid: false, error: `Empty file: ${file.name}` };
+  }
+  return { valid: true };
+}
+
 export const FileDropzone: React.FC<FileDropzoneProps> = ({
   onFiles,
   accept = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'heif', 'bmp', 'tiff', 'tif', 'gif', 'pdf'],
   multiple = true,
-  maxSize = 100 * 1024 * 1024, // 100MB
+  maxSize = DEFAULT_MAX_FILE_SIZE, // 1GB
   disabled = false,
   compact = false,
   allowAllTypes = false,
@@ -49,18 +81,9 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
       setError(null);
 
       for (const file of files) {
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
-        const hasExt = file.name.includes('.');
-        if (!allowAllTypes && hasExt && !accept.includes(ext)) {
-          setError(`Unsupported format: .${ext}`);
-          continue;
-        }
-        if (file.size > maxSize) {
-          setError(`File exceeds limit: ${file.name} (max ${Math.round(maxSize / 1024 / 1024)}MB)`);
-          continue;
-        }
-        if (!allowAllTypes && file.size === 0) {
-          setError(`Empty file: ${file.name}`);
+        const check = validateDroppedFile(file, { accept, maxSize, allowAllTypes });
+        if (!check.valid) {
+          setError(check.error || 'Invalid file');
           continue;
         }
         valid.push(file);
@@ -154,7 +177,7 @@ export const FileDropzone: React.FC<FileDropzoneProps> = ({
               Drop files here
             </p>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-sub)' }}>
-              or click to browse from device
+              or click to browse from device · up to {formatFileSize(maxSize)}
             </p>
           </div>
         )}

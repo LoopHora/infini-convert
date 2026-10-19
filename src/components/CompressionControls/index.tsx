@@ -148,7 +148,7 @@ export const CompressionControls: React.FC<CompressionControlsProps> = ({
               className="input"
               placeholder="e.g. 300"
               min={10}
-              max={50000}
+              max={1024 * 1024}
               value={settings.targetSize ? Math.round(settings.targetSize / 1024) : ''}
               onChange={(e) => {
                 const kb = Number(e.target.value);
