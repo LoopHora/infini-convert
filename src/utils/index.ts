@@ -119,6 +119,7 @@ export function canvasToBlob(
   mimeType: string,
   quality: number
 ): Promise<Blob> {
+  const q = quality > 1 ? Math.max(0.01, Math.min(1.0, quality / 100)) : Math.max(0.01, Math.min(1.0, quality));
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -126,7 +127,7 @@ export function canvasToBlob(
         else reject(new Error('Canvas toBlob failed'));
       },
       mimeType,
-      quality / 100
+      q
     );
   });
 }

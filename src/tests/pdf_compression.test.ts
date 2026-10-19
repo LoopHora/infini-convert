@@ -70,6 +70,14 @@ describe('PDF Size Compression (4K & Custom Quality)', () => {
       };
       expect(targetSettings.mode).toBe('target');
       expect(targetSettings.targetSize).toBe(1048576);
+
+      const largeTargetSettings: CompressionSettings = {
+        mode: 'target',
+        preset: 'balanced',
+        quality: 75,
+        targetSize: 50 * 1024 * 1024, // 50MB
+      };
+      expect(largeTargetSettings.targetSize).toBe(52428800);
     });
   });
 

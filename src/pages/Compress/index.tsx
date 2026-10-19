@@ -124,8 +124,9 @@ export const CompressPage: React.FC<{ initialFormat?: string }> = ({ initialForm
         );
       } catch (err) {
         console.error('Compression failed for', item.name, err);
+        const errMsg = err instanceof Error ? err.message : 'Compression failed';
         setFiles((prev) =>
-          prev.map((f) => f.id === item.id ? { ...f, status: 'error' as const, error: 'Compression failed' } : f)
+          prev.map((f) => f.id === item.id ? { ...f, status: 'error' as const, error: errMsg } : f)
         );
       }
     }

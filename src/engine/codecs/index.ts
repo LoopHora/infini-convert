@@ -72,9 +72,20 @@ export async function convertImage(
 ): Promise<Blob> {
   const source = await prepareDecodedImage(file);
   const img = await loadImage(source);
+
+  // Clamp to safe browser canvas dimensions (prevent OOM crashes on huge files)
+  const maxSafeDim = 8192;
+  let targetWidth = img.naturalWidth;
+  let targetHeight = img.naturalHeight;
+  if (targetWidth > maxSafeDim || targetHeight > maxSafeDim) {
+    const scale = maxSafeDim / Math.max(targetWidth, targetHeight);
+    targetWidth = Math.max(1, Math.round(targetWidth * scale));
+    targetHeight = Math.max(1, Math.round(targetHeight * scale));
+  }
+
   const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
   const ctx = canvas.getContext('2d')!;
 
   // For JPG output, fill white background (no transparency)
@@ -83,9 +94,16 @@ export async function convertImage(
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  ctx.drawImage(img, 0, 0);
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
   const mimeType = getMimeType(outputFormat);
-  return canvasToBlob(canvas, mimeType, quality);
+
+  try {
+    return await canvasToBlob(canvas, mimeType, quality);
+  } finally {
+    // Immediately release canvas GPU buffer memory
+    canvas.width = 0;
+    canvas.height = 0;
+  }
 }
 
 /**
@@ -105,7 +123,7 @@ export async function compressImage(
   } else if (settings.mode === 'custom') {
     quality = settings.quality;
   } else {
-    // target mode - use binary search
+    // target mode - use single-decode memory-optimized binary search
     return compressToTargetSize(decodedFile, settings.targetSize || 500 * 1024, ext);
   }
 
@@ -114,36 +132,85 @@ export async function compressImage(
 }
 
 /**
- * Binary search to achieve target file size
+ * Memory-efficient single-decode binary search to achieve target file size
  */
 async function compressToTargetSize(
   file: File,
   targetBytes: number,
   format: string
 ): Promise<Blob> {
-  const outputFormat = format === 'png' ? 'jpg' : format; // PNG doesn't support quality, fallback to JPG
+  const outputFormat = format === 'png' ? 'jpg' : format; // PNG doesn't support lossy quality, fallback to JPG
+  const mimeType = getMimeType(outputFormat);
+
+  const source = await prepareDecodedImage(file);
+  const img = await loadImage(source);
+
+  // Determine safe canvas dimensions (safeguard against huge images like 500MB raw files)
+  const isLarge = file.size > 100 * 1024 * 1024;
+  const maxSafeDim = isLarge ? 4096 : 8192;
+  let targetWidth = img.naturalWidth;
+  let targetHeight = img.naturalHeight;
+  if (targetWidth > maxSafeDim || targetHeight > maxSafeDim) {
+    const scale = maxSafeDim / Math.max(targetWidth, targetHeight);
+    targetWidth = Math.max(1, Math.round(targetWidth * scale));
+    targetHeight = Math.max(1, Math.round(targetHeight * scale));
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d')!;
+
+  if (outputFormat === 'jpg' || outputFormat === 'jpeg') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+  }
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
   let low = 5;
   let high = 100;
   let bestBlob: Blob | null = null;
   let iterations = 0;
-  const maxIterations = 12;
+  const maxIterations = 8; // 8 iterations cover 5..100 quality range cleanly (log2(100) ≈ 7)
 
-  while (low <= high && iterations < maxIterations) {
-    const mid = Math.floor((low + high) / 2);
-    const blob = await convertImage(file, outputFormat, mid);
-    iterations++;
+  try {
+    while (low <= high && iterations < maxIterations) {
+      const mid = Math.floor((low + high) / 2);
+      const blob = await canvasToBlob(canvas, mimeType, mid);
+      iterations++;
 
-    if (blob.size <= targetBytes) {
-      bestBlob = blob;
-      low = mid + 1; // Try higher quality
-    } else {
-      high = mid - 1; // Need lower quality
+      if (blob.size <= targetBytes) {
+        bestBlob = blob;
+        low = mid + 1; // Try higher quality
+      } else {
+        high = mid - 1; // Need lower quality
+      }
     }
-  }
 
-  // If we couldn't get below target, return the smallest we found
-  if (!bestBlob) {
-    bestBlob = await convertImage(file, outputFormat, 5);
+    // If we couldn't get below target at current resolution, try lowest quality
+    if (!bestBlob) {
+      bestBlob = await canvasToBlob(canvas, mimeType, 5);
+    }
+
+    // If even quality 5 exceeds targetBytes for a huge image, downscale dimensions
+    if (bestBlob.size > targetBytes && (targetWidth > 1200 || targetHeight > 1200)) {
+      const downscale = Math.max(0.2, Math.sqrt(targetBytes / bestBlob.size) * 0.95);
+      const downW = Math.max(800, Math.round(targetWidth * downscale));
+      const downH = Math.max(600, Math.round(targetHeight * downscale));
+
+      canvas.width = downW;
+      canvas.height = downH;
+      if (outputFormat === 'jpg' || outputFormat === 'jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, downW, downH);
+      }
+      ctx.drawImage(img, 0, 0, downW, downH);
+      bestBlob = await canvasToBlob(canvas, mimeType, 75);
+    }
+  } finally {
+    // Immediately release canvas backing memory
+    canvas.width = 0;
+    canvas.height = 0;
   }
 
   return bestBlob;
